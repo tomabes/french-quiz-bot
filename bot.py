@@ -98,7 +98,7 @@ def run_bot():
         application.add_handler(CallbackQueryHandler(pronounce, pattern="^pronounce$"))
         await application.initialize()
         await application.start()
-        await application.run_polling()
+        await application.run_polling(close_loop=False, stop_signals=None)
     
     asyncio.get_event_loop().run_until_complete(main())
 
