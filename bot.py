@@ -100,7 +100,7 @@ def run_bot():
         await application.start()
         await application.run_polling(close_loop=False, stop_signals=None)
     
-    asyncio.get_event_loop().run_until_complete(main())
+    asyncio.get_event_loop().create_task(main())
 
 if __name__ == "__main__":
     threading.Thread(target=run_bot).start()
