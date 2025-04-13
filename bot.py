@@ -2,6 +2,7 @@ import json
 import random
 import os
 import threading
+import asyncio
 from flask import Flask
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
@@ -88,6 +89,7 @@ def index():
 
 # Запуск Telegram-бота в отдельном потоке
 def run_bot():
+    asyncio.set_event_loop(asyncio.new_event_loop())
     application = ApplicationBuilder().token("7666357029:AAFfc5DJ2p2zg4iLagvsRqu_3Wj980dkp2Y").build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
