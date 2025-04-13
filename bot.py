@@ -1,18 +1,20 @@
 import json
 import random
 import os
+import threading
+from flask import Flask
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 from gtts import gTTS
 
-# Загружаем словарь
+# Загрузка словаря
 with open("french_vocab.json", encoding="utf-8") as f:
     vocab = json.load(f)
 
 french_words = list(vocab.keys())
 translations = list(vocab.values())
-user_current_answer = {}  # Храним правильные ответы по ID
-user_current_word = {}    # Храним последнее слово по ID
+user_current_answer = {}
+user_current_word = {}
 
 # Генерация вопроса
 def generate_question():
@@ -38,7 +40,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"💬 Что значит: *{word}* ?", parse_mode='Markdown', reply_markup=reply_markup)
     await update.message.reply_text("Нажми, чтобы услышать произношение:", reply_markup=audio_button)
 
-# Обработка текстовых ответов
+# Обработка текстового ответа
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_answer = update.message.text
@@ -62,7 +64,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"💬 Что значит: *{word}* ?", parse_mode='Markdown', reply_markup=reply_markup)
     await update.message.reply_text("Нажми, чтобы услышать произношение:", reply_markup=audio_button)
 
-# Обработка кнопки "🎧 Послушать"
+# Озвучка
 async def pronounce(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     word = user_current_word.get(user_id, "Bonjour")
@@ -77,8 +79,15 @@ async def pronounce(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     os.remove(filename)
 
-# Запуск бота
-def main():
+# Flask-приложение для Render
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return "Bot is running!"
+
+# Запуск Telegram-бота в отдельном потоке
+def run_bot():
     application = ApplicationBuilder().token("7666357029:AAFfc5DJ2p2zg4iLagvsRqu_3Wj980dkp2Y").build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
@@ -86,4 +95,6 @@ def main():
     application.run_polling()
 
 if __name__ == "__main__":
-    main()
+    threading.Thread(target=run_bot).start()
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
