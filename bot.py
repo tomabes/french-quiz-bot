@@ -5,16 +5,15 @@ from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKe
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 from gtts import gTTS
 
-# Загружаем словарь
+# Загрузка словаря
 with open("french_vocab.json", encoding="utf-8") as f:
     vocab = json.load(f)
 
 french_words = list(vocab.keys())
 translations = list(vocab.values())
-user_current_answer = {}  # Храним правильные ответы по ID
-user_current_word = {}    # Храним последнее слово по ID
+user_current_answer = {}
+user_current_word = {}
 
-# Генерация вопроса
 def generate_question():
     word = random.choice(french_words)
     correct = vocab[word]
@@ -23,7 +22,6 @@ def generate_question():
     random.shuffle(options)
     return word, correct, options
 
-# Обработка /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     word, correct, options = generate_question()
     user_id = update.effective_user.id
@@ -38,7 +36,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"💬 Что значит: *{word}* ?", parse_mode='Markdown', reply_markup=reply_markup)
     await update.message.reply_text("Нажми, чтобы услышать произношение:", reply_markup=audio_button)
 
-# Обработка текстовых ответов
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_answer = update.message.text
@@ -62,7 +59,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"💬 Что значит: *{word}* ?", parse_mode='Markdown', reply_markup=reply_markup)
     await update.message.reply_text("Нажми, чтобы услышать произношение:", reply_markup=audio_button)
 
-# Обработка кнопки "🎧 Послушать"
 async def pronounce(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     word = user_current_word.get(user_id, "Bonjour")
@@ -77,13 +73,26 @@ async def pronounce(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     os.remove(filename)
 
-# Запуск бота
-def main():
-    application = ApplicationBuilder().token("7666357029:AAFfc5DJ2p2zg4iLagvsRqu_3Wj980dkp2Y").build()
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    application.add_handler(CallbackQueryHandler(pronounce, pattern="^pronounce$"))
-    application.run_polling()
+async def main():
+    TOKEN = "7666357029:AAFfc5DJ2p2zg4iLagvsRqu_3Wj980dkp2Y"
+    URL = "https://french-quiz-bot.onrender.com/webhook"
+
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(CallbackQueryHandler(pronounce, pattern="^pronounce$"))
+
+    await app.initialize()
+    await app.bot.set_webhook(url=URL)
+    await app.start()
+    await app.updater.start_webhook(
+        listen="0.0.0.0",
+        port=int(os.environ.get("PORT", 10000)),
+        url_path="webhook",
+        webhook_url=URL
+    )
+    await app.updater.wait_until_closed()
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())
