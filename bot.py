@@ -32,11 +32,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     reply_markup = ReplyKeyboardMarkup([[opt] for opt in options], one_time_keyboard=True)
     audio_button = InlineKeyboardMarkup.from_button(
-        InlineKeyboardButton("🎧 Послушать", callback_data="pronounce")
+        InlineKeyboardButton("🎧 Écoute", callback_data="pronounce")
     )
 
-    await update.message.reply_text(f"💬 Что значит: *{word}* ?", parse_mode='Markdown', reply_markup=reply_markup)
-    await update.message.reply_text("Нажми, чтобы услышать произношение:", reply_markup=audio_button)
+    await update.message.reply_text(f"💬 Signifie: *{word}* ?", parse_mode='Markdown', reply_markup=reply_markup)
+    await update.message.reply_text("Écoute la prononciation:", reply_markup=audio_button)
 
 # Обработка текстовых ответов
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -46,9 +46,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if correct_answer:
         if user_answer == correct_answer:
-            await update.message.reply_text("✅ Верно!")
+            await update.message.reply_text("✅ Bien!")
         else:
-            await update.message.reply_text(f"❌ Неверно. Правильный ответ: {correct_answer}")
+            await update.message.reply_text(f"❌ Faux. Réponse: {correct_answer}")
 
     word, correct, options = generate_question()
     user_current_answer[user_id] = correct
@@ -56,11 +56,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     reply_markup = ReplyKeyboardMarkup([[opt] for opt in options], one_time_keyboard=True)
     audio_button = InlineKeyboardMarkup.from_button(
-        InlineKeyboardButton("🎧 Послушать", callback_data="pronounce")
+        InlineKeyboardButton("🎧 Écoute", callback_data="pronounce")
     )
 
-    await update.message.reply_text(f"💬 Что значит: *{word}* ?", parse_mode='Markdown', reply_markup=reply_markup)
-    await update.message.reply_text("Нажми, чтобы услышать произношение:", reply_markup=audio_button)
+    await update.message.reply_text(f"💬 Signifie: *{word}* ?", parse_mode='Markdown', reply_markup=reply_markup)
+    await update.message.reply_text("Écoute la prononciation:", reply_markup=audio_button)
 
 # Обработка кнопки "🎧 Послушать"
 async def pronounce(update: Update, context: ContextTypes.DEFAULT_TYPE):
