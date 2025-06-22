@@ -40,61 +40,56 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
     )
 
-# Обработка выбора словаря
-async def handle_vocab_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    choice = update.message.text
+    text = update.message.text
 
-    if choice not in available_vocab_files:
-        await update.message.reply_text("❗️Ce dictionnaire n'est pas reconnu. Réessaie avec /start.")
-        return
+    # Если пользователь ещё не выбрал словарь
+    if user_id not in user_vocab_choice:
+        if text not in available_vocab_files:
+            await update.message.reply_text("❗️Ce dictionnaire n'est pas reconnu. Réessaie avec /start.")
+            return
 
-    vocab_file = available_vocab_files[choice]
-    vocab = load_vocab(vocab_file)
-    user_vocab_choice[user_id] = vocab  # Сохраняем словарь
+        vocab_file = available_vocab_files[text]
+        vocab = load_vocab(vocab_file)
+        user_vocab_choice[user_id] = vocab  # Сохраняем словарь
 
-    word, correct, options = generate_question(vocab)
-    user_current_answer[user_id] = correct
-    user_current_word[user_id] = word
+        word, correct, options = generate_question(vocab)
+        user_current_answer[user_id] = correct
+        user_current_word[user_id] = word
 
-    reply_markup = ReplyKeyboardMarkup([[opt] for opt in options], one_time_keyboard=True)
-    audio_button = InlineKeyboardMarkup.from_button(
-        InlineKeyboardButton("🎧 Écoute", callback_data="pronounce")
-    )
+        reply_markup = ReplyKeyboardMarkup([[opt] for opt in options], one_time_keyboard=True)
+        audio_button = InlineKeyboardMarkup.from_button(
+            InlineKeyboardButton("🎧 Écoute", callback_data="pronounce")
+        )
 
-    await update.message.reply_text(f"💬 Signifie: *{word}* ?", parse_mode='Markdown', reply_markup=reply_markup)
-    await update.message.reply_text("Écoute la prononciation:", reply_markup=audio_button)
+        await update.message.reply_text(f"💬 Signifie: *{word}* ?", parse_mode='Markdown', reply_markup=reply_markup)
+        await update.message.reply_text("Écoute la prononciation:", reply_markup=audio_button)
 
-# Ответ пользователя
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    user_answer = update.message.text
-    vocab = user_vocab_choice.get(user_id)
+    else:
+        # Пользователь уже выбрал словарь — проверяем ответ
+        vocab = user_vocab_choice[user_id]
+        correct_answer = user_current_answer.get(user_id)
 
-    if not vocab:
-        await update.message.reply_text("ℹ️ D'abord choisis un dictionnaire via /start.")
-        return
+        if correct_answer:
+            if text == correct_answer:
+                await update.message.reply_text("✅ Bien!")
+            else:
+                await update.message.reply_text(f"❌ Faux. Réponse: {correct_answer}")
 
-    correct_answer = user_current_answer.get(user_id)
-    if correct_answer:
-        if user_answer == correct_answer:
-            await update.message.reply_text("✅ Bien!")
-        else:
-            await update.message.reply_text(f"❌ Faux. Réponse: {correct_answer}")
+        # Следующий вопрос
+        word, correct, options = generate_question(vocab)
+        user_current_answer[user_id] = correct
+        user_current_word[user_id] = word
 
-    word, correct, options = generate_question(vocab)
-    user_current_answer[user_id] = correct
-    user_current_word[user_id] = word
+        reply_markup = ReplyKeyboardMarkup([[opt] for opt in options], one_time_keyboard=True)
+        audio_button = InlineKeyboardMarkup.from_button(
+            InlineKeyboardButton("🎧 Écoute", callback_data="pronounce")
+        )
 
-    reply_markup = ReplyKeyboardMarkup([[opt] for opt in options], one_time_keyboard=True)
-    audio_button = InlineKeyboardMarkup.from_button(
-        InlineKeyboardButton("🎧 Écoute", callback_data="pronounce")
-    )
+        await update.message.reply_text(f"💬 Signifie: *{word}* ?", parse_mode='Markdown', reply_markup=reply_markup)
+        await update.message.reply_text("Écoute la prononciation:", reply_markup=audio_button)
 
-    await update.message.reply_text(f"💬 Signifie: *{word}* ?", parse_mode='Markdown', reply_markup=reply_markup)
-    await update.message.reply_text("Écoute la prononciation:", reply_markup=audio_button)
-
-# Произношение
 async def pronounce(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     word = user_current_word.get(user_id, "Bonjour")
@@ -113,8 +108,7 @@ async def pronounce(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     application = ApplicationBuilder().token("7666357029:AAFfc5DJ2p2zg4iLagvsRqu_3Wj980dkp2Y").build()
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_vocab_selection))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     application.add_handler(CallbackQueryHandler(pronounce, pattern="^pronounce$"))
     application.run_polling()
 
